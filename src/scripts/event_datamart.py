@@ -1,11 +1,9 @@
 import sys
 import os
-from pyspark import SparkContext, SparkConf
-from pyspark.sql import SparkSession
 import pyspark.sql.functions as F
+
+from pyspark.sql import SparkSession
 from pyspark.sql.window import Window
-import datetime
-from pyspark.sql.types import FloatType, IntegerType, ArrayType, StringType
 
 os.environ["PYSPARK_DRIVER_PYTHON"] = "/usr/bin/python3"
 os.environ["HADOOP_CONF_DIR"] = "/etc/hadoop/conf"
@@ -26,6 +24,7 @@ def main():
     path_to_geo_events = sys.argv[2]  # "/user/master/data/geo/events"
     path_to_geo_city = sys.argv[3]  # "/user/gera190770/data/geo/geo_time_zone.csv"
     output_base_path = sys.argv[4]  # "/user/gera190770/analytics/user_datamart"
+    earth_radius = 6371
 
     # Создаем подключение
     spark = SparkSession.builder.appName("Project-sp7").getOrCreate()
@@ -58,7 +57,7 @@ def main():
                                                                 F.col('timezone')))
 
     # Считаем дистанцию между координатами отправленного сообщения и координатами города
-    df = df.withColumn("distance", F.lit(2) * F.lit(6371)
+    df = df.withColumn("distance", F.lit(2) * F.lit(earth_radius)
                                             * F.asin(F.sqrt(F.pow(F.sin((F.radians(F.col('lat')) - F.radians(F.col('lat_city')))/F.lit(2)), 2)
                                             + F.cos(F.radians(F.col('lat')))
                                             * F.cos(F.radians(F.col('lat_city')))

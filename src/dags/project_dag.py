@@ -1,8 +1,9 @@
 import airflow
+import os
+
 from datetime import timedelta
 from airflow import DAG
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
-import os
 from datetime import date, datetime
 
 os.environ['HADOOP_CONF_DIR'] = '/etc/hadoop/conf'

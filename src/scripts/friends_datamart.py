@@ -1,7 +1,8 @@
 import sys
 import os
-from pyspark.sql import SparkSession
 import pyspark.sql.functions as F
+
+from pyspark.sql import SparkSession
 from pyspark.sql.window import Window
 
 os.environ["PYSPARK_DRIVER_PYTHON"] = "/usr/bin/python3"
@@ -15,7 +16,6 @@ def change_dec_sep(df, column):
     df = df.withColumn(column, F.regexp_replace(column, ',', '.'))
     df = df.withColumn(column, df[column].cast("float"))
     return df
-
 
 
 def main():
@@ -40,7 +40,7 @@ def main():
 
     # Читаем фрейм с событиями и их координатами
     events_df = spark.read.parquet(f'{path_to_geo_events}/date={date}')
-    
+
     # Соединяем два датафрейма
     df = events_df.crossJoin(geo_df.select(F.col('id').alias('zone_id'),
                                            F.col('city'),
@@ -54,11 +54,11 @@ def main():
                                             + F.cos(F.radians(F.col('lat')))
                                             * F.cos(F.radians(F.col('lat_city')))
                                             * F.pow(F.sin((F.radians(F.col('lon')) - F.radians(F.col('lon_city')))/F.lit(2)), 2))))
-    
+
     df = df.select('event', 'event_type', 'zone_id', 'city', 'distance', 'lat', 'lon', 'timezone')
     df = df.join(df.select('event', 'distance').groupBy('event').agg(F.min('distance')), 'event')
     df = df.filter((F.col('distance') == F.col('min(distance)')) & (F.col('event.message_from').isNotNull())) # Здесь убираются все строки 
-    
+
     # Находим список пользователей, подписанных на один и тот же канал
     same_channel_users = df.select('event.subscription_channel', F.col('event.user').alias('user_left'))\
                            .filter(df.event.subscription_channel.isNotNull() & df.event.user.isNotNull())
@@ -78,13 +78,12 @@ def main():
                                                 (same_channel_users["user_left"].contains(interacted_users["user_left"])) &
                                                 (same_channel_users["user_right"].contains(interacted_users["user_right"])),
                                                 "leftanti")
-    
+
     # Найдем пользователей, которые находятся на расстоянии 1 км друг от друга
     window_spec = Window.partitionBy('event.user').orderBy(F.col('event.datetime').desc())
-    
+
     user_geo = df.withColumn('rank', F.row_number().over(window_spec)).filter(F.col('rank') == 1).select('event.user', 'lat', 'lon') # здесь формируется орлдна строка из-за фильтрации по raNK
-    
-    
+
     joined_df = recommended_users.join(user_geo.select('user', F.col('lat').alias('ul_lat'), F.col('lon').alias('ul_lon')),
                                        recommended_users.user_left == user_geo.user, "left") \
                                                .join(user_geo.select('user', F.col('lat').alias('ur_lat'), F.col('lon').alias('ur_lon')),
@@ -113,8 +112,7 @@ def main():
 
 
 if __name__ == "__main__":
-     main()
+    main()
 
 
 # # !/usr/lib/spark/bin/spark-submit --master yarn --deploy-mode cluster /lessons/friends_datamart.py 2022-01-02 /user/master/data/geo/events /user/gera190770/data/geo/geo_time_zone.csv /user/gera190770/analytics/friends_datamart
-

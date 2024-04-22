@@ -1,8 +1,8 @@
-# Витрина 2
 import sys
 import os
-from pyspark.sql import SparkSession
 import pyspark.sql.functions as F
+
+from pyspark.sql import SparkSession
 from pyspark.sql.window import Window
 
 os.environ["PYSPARK_DRIVER_PYTHON"] = "/usr/bin/python3"
